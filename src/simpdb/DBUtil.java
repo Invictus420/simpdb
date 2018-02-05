@@ -1,76 +1,108 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package simpdb;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.HashMap;
+import java.util.Map;
 
-/**
- *
- * @author alexa
- */
 public class DBUtil {
-    
     String file = "stuff.db";
-    long pos = 0;    
-    HashMap<String, String> dbMap = new HashMap();
-    
+    Map<String, Integer> hm = new HashMap<>();
+    long placement = 0;
+
+
     public DBUtil(){
-    //dbMap = extractDB();
-}
-    
-    public void insertDB(String key, String value) throws IOException{
-        String rocketShipWithLasers = key +"~" +value;
-        byte[] stuff = rocketShipWithLasers.getBytes();
-        dbMap.put(key, pos+"|"+stuff.length);
-        pos += stuff.length;
-        
-    try{
-        FileOutputStream out = new FileOutputStream(file, true);       
-        ObjectOutputStream os = new ObjectOutputStream(out);
-            
-            os.write(stuff);
-                    
-       
-        out.close();
+        hm = loadDB();
     }
-    catch(FileNotFoundException e){
-        e.printStackTrace();           
+
+    public void insertDB(String index, String value){
+        String ele = index + ";" + value;
+        byte[] write = ele.getBytes();
+
+        hm.put(index, (int) placement);
+        placement += write.length+8;
+        write(ele);
+
+
     }
+
+    public String getDB(String index){
+        int off = hm.get(index);
+
+        try{
+            FileInputStream fis = new FileInputStream(file);
+            System.out.println(fis.available());
+            fis.skip(off);
+            ObjectInputStream input = new ObjectInputStream(fis);
+            System.out.println("ava " + input.available());
+            System.out.println(input.skipBytes(0));
+            String k = input.readUTF();
+            System.out.println("value: " + k);
+
+
+            input.close();
+            fis.close();
+
+            return k;
+
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return "nop";
     }
-    
-    public HashMap extractDB(){
-        HashMap<String, String> mp = new HashMap();
-        
-        byte[] b = new byte[0];
-                
+
+    private Map<String, Integer> loadDB(){
+        Map<String, Integer> map = new HashMap<>();
+
         try {
             FileInputStream in = new FileInputStream(file);
-            ObjectInputStream oi = new ObjectInputStream(in);
-            
-            mp = (HashMap<String, String>) oi.readObject();
-            for (int i = 0; i < mp.size()+1; i++) {
-                System.out.println(mp.get(i));
-            }
-            System.out.println(mp);
-            return mp;
-            
-        } catch (Exception e) {
+
+            placement = in.getChannel().size()/8;
+
+            in.close();
+
+            return map;
+
+        } catch (FileNotFoundException e) {
+            //e.printStackTrace();
+        } catch (EOFException ex1) {
+
+        } catch (IOException e) {
             e.printStackTrace();
-        } 
-        
-        return mp;
+        }
+
+
+        return map;
     }
-    
-    public String searchDB(String key){
-        return dbMap.get(key);
+
+
+
+    void write(String aInput){
+        System.out.println("Writing to binary file...");
+        try {
+            ObjectOutputStream out = null;
+            try {
+                out = new ObjectOutputStream(new FileOutputStream(file, true));
+                //out.writeByte(aInput[0]);
+                out.writeUTF(aInput);
+                //System.out.printf("%02x ", aInput[0]);
+                //System.out.println(Byte.parseByte("tes tytest"));
+            }
+            finally {
+                out.flush();
+                out.close();
+            }
+        }
+        catch(FileNotFoundException ex){
+            System.out.println("File not found.");
+        }
+        catch(IOException ex){
+            System.out.println(ex);
+        }
     }
+
+
+
+
 }
